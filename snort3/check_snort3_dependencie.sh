@@ -3,7 +3,7 @@
 # Array of dependencies
 dependencies=(
     "cmake"
-    "daq"
+    "libdaq2"
     "libdnet"
     "g++"
     "flex"
