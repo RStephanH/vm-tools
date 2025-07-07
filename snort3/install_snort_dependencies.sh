@@ -4,7 +4,7 @@
 dependencies=(
     "cmake"
     "libdaq2"
-    "libdnet"
+    "libdnet-dev"
     "g++"
     "flex"
     "hwloc"
