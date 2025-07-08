@@ -1,51 +1,66 @@
 #!/bin/bash
 
-# Array of dependencies
-dependencies=(
-    "cmake"
-    "libdaq2"
-    "libdnet-dev"
-    "g++"
-    "flex"
-    "hwloc"
-    "luajit"
-    "openssl"
-    "libpcap-dev"
-    "libpcre2-dev"
-    "pkg-config"
-    "zlib1g-dev"
-)
+set -e
 
-# Check if script is run with sudo privileges
-if [ "$EUID" -ne 0 ]; then
-    echo "This script requires sudo privileges. Please run as root or with sudo."
-    exit 1
+echo "🚀 Updating APT package list..."
+sudo apt update
+
+echo "📦 Installing common dependencies from APT..."
+sudo apt install -y \
+    cmake g++ flex bison libpcap-dev libpcre2-dev zlib1g-dev \
+    pkg-config libhwloc-dev luajit libssl-dev git build-essential \
+    automake autoconf libtool curl wget
+
+WORKDIR="$HOME/snort3-deps"
+mkdir -p "$WORKDIR"
+cd "$WORKDIR"
+
+# ---- libdaq ----
+echo "🔧 Cloning and building libdaq..."
+if [ ! -d "libdaq" ]; then
+    git clone https://github.com/snort3/libdaq.git
+fi
+cd libdaq
+./bootstrap
+./configure
+make -j"$(nproc)"
+sudo make install
+cd ..
+
+# ---- libdnet ----
+echo "🔧 Cloning and building libdnet..."
+if [ ! -d "libdnet" ]; then
+    git clone https://github.com/dugsong/libdnet.git
+fi
+cd libdnet
+./configure
+make -j"$(nproc)"
+sudo make install
+cd ..
+
+# ---- Flex (>= 2.6.0) ----
+echo "🔧 Cloning and building Flex..."
+if [ ! -d "flex" ]; then
+    git clone https://github.com/westes/flex.git
+fi
+cd flex
+./autogen.sh
+./configure
+make -j"$(nproc)"
+sudo make install
+cd ..
+
+# ---- LuaJIT (if not already installed) ----
+if ! command -v luajit >/dev/null; then
+    echo "🔧 LuaJIT not found. Building from source..."
+    curl -R -O http://luajit.org/download/LuaJIT-2.1.0-beta3.tar.gz
+    tar -xvzf LuaJIT-2.1.0-beta3.tar.gz
+    cd LuaJIT-2.1.0-beta3
+    make -j"$(nproc)"
+    sudo make install
+    cd ..
 fi
 
-# Update package lists
-echo "Updating package lists..."
-if ! apt-get update >/dev/null 2>&1; then
-    echo "Failed to update package lists. Please check your internet connection or apt configuration."
-    exit 1
-fi
+echo "✅ All Snort 3 dependencies are installed!"
+echo "📁 You can now proceed to build Snort 3 in a clean environment."
 
-# Check and install each dependency
-for dependency in "${dependencies[@]}"; do
-    echo "Checking for $dependency..."
-    if dpkg -l "$dependency" >/dev/null 2>&1; then
-        echo "$dependency is already installed."
-    else
-        echo "$dependency is not installed. Installing..."
-        if apt-cache policy "$dependency" >/dev/null 2>&1; then
-            if apt-get install -y "$dependency" >/dev/null 2>&1; then
-                echo "$dependency installed successfully."
-            else
-                echo "Failed to install $dependency. Please check the package name or repository."
-            fi
-        else
-            echo "$dependency not found in the apt repository. Please check the package name or add the appropriate repository."
-        fi
-    fi
-done
-
-echo "Dependency installation check complete."

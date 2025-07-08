@@ -2,9 +2,9 @@
 
 # Array of dependencies
 dependencies=(
-    "cmake"
-    "libdaq2"
-    "libdnet"
+    "cmake" 
+    "build-essential"
+    "libdumbnet-dev"
     "g++"
     "flex"
     "hwloc"
